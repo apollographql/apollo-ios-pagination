@@ -167,11 +167,11 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
 
 extension GraphQLQueryPager {
   /// Convenience initializer: Returns a `GraphQLQueryPager` that is built around paginating forwards.
-  public static func makeForwardQueryPager(
+  public static func makeForwardCursorQueryPager(
     client: ApolloClientProtocol,
     initialQuery: InitialQuery,
-    extractPageInfo: @escaping (PageExtractionData) -> ForwardPagination,
-    nextPageResolver: @escaping (ForwardPagination) -> PaginatedQuery
+    extractPageInfo: @escaping (PageExtractionData) -> CursorBasedPagination.ForwardPagination,
+    nextPageResolver: @escaping (CursorBasedPagination.ForwardPagination) -> PaginatedQuery
   ) -> GraphQLQueryPager {
     .init(
       client: client,
@@ -184,11 +184,11 @@ extension GraphQLQueryPager {
 
 extension GraphQLQueryPager {
   /// Convenience initializer: Returns a `GraphQLQueryPager` that is built around paginating backwards.
-  public static func makeReverseQueryPager(
+  public static func makeReverseCursorQueryPager(
     client: ApolloClientProtocol,
     initialQuery: InitialQuery,
-    extractPageInfo: @escaping (PageExtractionData) -> ReversePagination,
-    nextPageResolver: @escaping (ReversePagination) -> PaginatedQuery
+    extractPageInfo: @escaping (PageExtractionData) -> CursorBasedPagination.ReversePagination,
+    nextPageResolver: @escaping (CursorBasedPagination.ReversePagination) -> PaginatedQuery
   ) -> GraphQLQueryPager {
     .init(
       client: client,
