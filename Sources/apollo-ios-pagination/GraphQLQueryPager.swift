@@ -199,6 +199,22 @@ extension GraphQLQueryPager {
   }
 }
 
+extension GraphQLQueryPager {
+  public static func makeOffsetCursorQueryPager(
+    client: ApolloClientProtocol,
+    initialQuery: InitialQuery,
+    extractPageInfo: @escaping (PageExtractionData) -> OffsetPagination,
+    nextPageResolver: @escaping (OffsetPagination) -> PaginatedQuery
+  ) -> GraphQLQueryPager {
+    .init(
+      client: client,
+      initialQuery: initialQuery,
+      extractPageInfo: extractPageInfo,
+      nextPageResolver: nextPageResolver
+    )
+  }
+}
+
 @propertyWrapper
 private struct Hashed<Wrapped>: Hashable {
   var wrappedValue: Wrapped
