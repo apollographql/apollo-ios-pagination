@@ -8,7 +8,7 @@ public class AnyGraphQLQueryPager<Model> {
   private let _refetch: () -> Void
   private let _cancel: () -> Void
   private let _stream: AsyncStream<Output>
-  
+
   public init<Pager: GraphQLQueryPager<InitialQuery, NextQuery>, InitialQuery, NextQuery>(
     pager: Pager,
     initialTransform: @escaping (InitialQuery.Data) -> [Model],
@@ -18,10 +18,10 @@ public class AnyGraphQLQueryPager<Model> {
     _loadMore = pager.loadMore
     _refetch = pager.refetch
     _cancel = pager.cancel
-    
+
     _stream = pager.subscribe().map { result in
       let returnValue: Output
-      
+
       switch result {
       case let .success(value):
         let (initial, next, updateSource) = value
@@ -31,27 +31,35 @@ public class AnyGraphQLQueryPager<Model> {
       case let .failure(error):
         returnValue = .failure(error)
       }
-      
+
       return returnValue
     }
   }
-  
+
   public func subscribe() -> AsyncStream<Output> {
     return _stream
   }
-  
+
+  public func subscribe(completion: @MainActor @escaping (Output) -> Void) {
+    Task {
+      for await result in subscribe() {
+        await completion(result)
+      }
+    }
+  }
+
   public func fetch(cachePolicy: CachePolicy = .returnCacheDataAndFetch) {
     _fetch(cachePolicy)
   }
-  
+
   public func loadMore(cachePolicy: CachePolicy = .returnCacheDataAndFetch, completion: (() -> Void)? = nil) -> Bool {
     _loadMore(cachePolicy, completion)
   }
-  
+
   public func refetch() {
     _refetch()
   }
-  
+
   public func cancel() {
     _cancel()
   }
