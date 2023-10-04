@@ -39,6 +39,8 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   /// Maps each page info to latest results from internal watchers.
   private var pageMap = [Hashed<PaginationInfo>: PaginatedQuery.Data]()
 
+  private var activeTask: Task<Void, Never>?
+
   /// Designated Initializer
   /// - Parameters:
   ///   - client: Apollo Client
@@ -107,7 +109,7 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   public func loadMore(
     cachePolicy: CachePolicy = .fetchIgnoringCacheData,
     completion: (() -> Void)? = nil
-  ) throws {
+  ) async throws {
     guard let currentPageInfo else {
       assertionFailure("No page info detected -- are you calling `loadMore` prior to calling the initial fetch?")
       throw PaginationError.missingInitialPage
@@ -115,29 +117,38 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     guard let nextPageQuery = nextPageResolver(currentPageInfo.wrappedValue),
           currentPageInfo.wrappedValue.canLoadMore
     else { throw PaginationError.pageHasNoMoreContent }
-    let watcher = GraphQLQueryWatcher(client: client, query: nextPageQuery) { [weak self] result in
-      guard let self else { return }
-      switch result {
-      case .success(let data):
-        guard let nextPageData = data.data else { return }
-
-        let page = Hashed(wrappedValue: self.extractPageInfo(.paginated(nextPageData)))
-        if case .server = data.source {
-          pageOrder.append(page)
-        }
-        self.pageMap[page] = data.data
-
-        if let latest = self.latest {
-          let (firstPage, nextPage) = latest
-          self.onUpdate?((firstPage, nextPage, data.source == .cache ? .cache : .fetch))
-        }
-      case .failure(let error):
-        self.onError?(error)
-      }
-      completion?()
+    guard activeTask == nil else {
+      _ = await activeTask?.value
+      return
     }
-    nextPageWatchers.append(watcher)
-    watcher.refetch(cachePolicy: cachePolicy)
+    let task = Task<Void, Never> {
+      let watcher = GraphQLQueryWatcher(client: client, query: nextPageQuery) { [weak self] result in
+        defer { self?.activeTask = nil }
+        guard let self else { return }
+        switch result {
+        case .success(let data):
+          guard let nextPageData = data.data else { return }
+
+          let page = Hashed(wrappedValue: self.extractPageInfo(.paginated(nextPageData)))
+          if case .server = data.source {
+            pageOrder.append(page)
+          }
+          self.pageMap[page] = data.data
+
+          if let latest = self.latest {
+            let (firstPage, nextPage) = latest
+            self.onUpdate?((firstPage, nextPage, data.source == .cache ? .cache : .fetch))
+          }
+        case .failure(let error):
+          self.onError?(error)
+        }
+        completion?()
+      }
+      nextPageWatchers.append(watcher)
+      watcher.refetch(cachePolicy: cachePolicy)
+    }
+
+    await task.value
   }
 
   /// Reloads all data, starting at the first query, resetting pagination state.
