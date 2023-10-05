@@ -175,56 +175,6 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   }
 }
 
-extension GraphQLQueryPager {
-  /// Convenience initializer: Returns a `GraphQLQueryPager` that is built around paginating forwards.
-  public static func makeForwardCursorQueryPager(
-    client: ApolloClientProtocol,
-    initialQuery: InitialQuery,
-    extractPageInfo: @escaping (PageExtractionData) -> CursorBasedPagination.ForwardPagination,
-    nextPageResolver: @escaping (CursorBasedPagination.ForwardPagination) -> PaginatedQuery
-  ) -> GraphQLQueryPager {
-    .init(
-      client: client,
-      initialQuery: initialQuery,
-      extractPageInfo: extractPageInfo,
-      nextPageResolver: nextPageResolver
-    )
-  }
-}
-
-extension GraphQLQueryPager {
-  /// Convenience initializer: Returns a `GraphQLQueryPager` that is built around paginating backwards.
-  public static func makeReverseCursorQueryPager(
-    client: ApolloClientProtocol,
-    initialQuery: InitialQuery,
-    extractPageInfo: @escaping (PageExtractionData) -> CursorBasedPagination.ReversePagination,
-    nextPageResolver: @escaping (CursorBasedPagination.ReversePagination) -> PaginatedQuery
-  ) -> GraphQLQueryPager {
-    .init(
-      client: client,
-      initialQuery: initialQuery,
-      extractPageInfo: extractPageInfo,
-      nextPageResolver: nextPageResolver
-    )
-  }
-}
-
-extension GraphQLQueryPager {
-  public static func makeOffsetCursorQueryPager(
-    client: ApolloClientProtocol,
-    initialQuery: InitialQuery,
-    extractPageInfo: @escaping (PageExtractionData) -> OffsetPagination,
-    nextPageResolver: @escaping (OffsetPagination) -> PaginatedQuery
-  ) -> GraphQLQueryPager {
-    .init(
-      client: client,
-      initialQuery: initialQuery,
-      extractPageInfo: extractPageInfo,
-      nextPageResolver: nextPageResolver
-    )
-  }
-}
-
 @propertyWrapper
 private struct Hashed<Wrapped>: Hashable {
   var wrappedValue: Wrapped
