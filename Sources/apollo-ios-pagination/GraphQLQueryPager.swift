@@ -89,7 +89,14 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
         guard let self else { return }
         switch result {
         case .success(let data):
-          if case .server = data.source, let firstPageData = data.data {
+          let shouldUpdate: Bool
+          if cachePolicy == .returnCacheDataAndFetch && data.source == .cache {
+            shouldUpdate = false
+          } else {
+            shouldUpdate = true
+          }
+
+          if shouldUpdate, let firstPageData = data.data {
             let page = Hashed(wrappedValue: self.extractPageInfo(.initial(firstPageData)))
             pageOrder.append(page)
           }
@@ -107,8 +114,7 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
 
   /// Loads the next page, based on the latest page info.
   public func loadMore(
-    cachePolicy: CachePolicy = .fetchIgnoringCacheData,
-    completion: (() -> Void)? = nil
+    cachePolicy: CachePolicy = .fetchIgnoringCacheData
   ) async throws {
     guard let currentPageInfo else {
       assertionFailure("No page info detected -- are you calling `loadMore` prior to calling the initial fetch?")
@@ -122,30 +128,41 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
       return
     }
     let task = Task<Void, Never> {
-      let watcher = GraphQLQueryWatcher(client: client, query: nextPageQuery) { [weak self] result in
-        defer { self?.activeTask = nil }
-        guard let self else { return }
-        switch result {
-        case .success(let data):
-          guard let nextPageData = data.data else { return }
+      await withCheckedContinuation { continuation in
+        let watcher = GraphQLQueryWatcher(client: client, query: nextPageQuery) { [weak self] result in
+          defer { self?.activeTask = nil }
+          guard let self else { return continuation.resume() }
+          switch result {
+          case .success(let data):
+            guard let nextPageData = data.data else { return continuation.resume() }
 
-          let page = Hashed(wrappedValue: self.extractPageInfo(.paginated(nextPageData)))
-          if case .server = data.source {
-            pageOrder.append(page)
-          }
-          self.pageMap[page] = data.data
+            let page = Hashed(wrappedValue: self.extractPageInfo(.paginated(nextPageData)))
+            let shouldUpdate: Bool
+            if cachePolicy == .returnCacheDataAndFetch && data.source == .cache {
+              shouldUpdate = false
+            } else {
+              shouldUpdate = true
+            }
+            if shouldUpdate {
+              pageOrder.append(page)
+            }
+            self.pageMap[page] = data.data
 
-          if let latest = self.latest {
-            let (firstPage, nextPage) = latest
-            self.onUpdate?((firstPage, nextPage, data.source == .cache ? .cache : .fetch))
+            if let latest = self.latest {
+              let (firstPage, nextPage) = latest
+              self.onUpdate?((firstPage, nextPage, data.source == .cache ? .cache : .fetch))
+            }
+            if shouldUpdate {
+              continuation.resume()
+            }
+          case .failure(let error):
+            self.onError?(error)
+            continuation.resume()
           }
-        case .failure(let error):
-          self.onError?(error)
         }
-        completion?()
+        nextPageWatchers.append(watcher)
+        watcher.refetch(cachePolicy: cachePolicy)
       }
-      nextPageWatchers.append(watcher)
-      watcher.refetch(cachePolicy: cachePolicy)
     }
 
     await task.value
