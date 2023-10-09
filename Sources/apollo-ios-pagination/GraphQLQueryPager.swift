@@ -23,7 +23,9 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   let nextPageResolver: (PaginationInfo) -> PaginatedQuery?
   let extractPageInfo: (PageExtractionData) -> PaginationInfo
   var currentPageInfo: PaginationInfo? {
-    guard let last = pageOrder.last else { return nil }
+    guard let last = pageOrder.last else {
+      return initialPageResult.flatMap { extractPageInfo(.initial($0)) }
+    }
     if let data = varMap[last] {
       return extractPageInfo(.paginated(data))
     } else if let initialPageResult {
@@ -110,7 +112,6 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
         case .success(let data):
           self.initialPageResult = data.data
           guard let firstPageData = data.data else { return }
-          let variables = initialQuery.__variables?.values.compactMap { $0._jsonEncodableValue?._jsonValue } ?? []
           if let latest = self.latest {
             let (_, nextPage) = latest
             self.onUpdate?((firstPageData, nextPage, data.source == .cache ? .cache : .fetch))
