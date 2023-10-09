@@ -27,13 +27,5 @@ let package = Package(
         .product(name: "ApolloAPI", package: "apollo-ios"),
       ]
     ),
-    .testTarget(
-      name: "apollo-ios-paginationTests",
-      dependencies: [
-        "apollo-ios-pagination",
-        .product(name: "ApolloSQLite", package: "apollo-ios"),
-        .product(name: "ApolloWebSocket", package: "apollo-ios"),
-      ]
-    ),
   ]
 )
