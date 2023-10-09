@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
   name: "apollo-ios-pagination",
   platforms: [
-    .iOS(.v12),
+    .iOS(.v13),
     .macOS(.v10_15),
     .tvOS(.v12),
     .watchOS(.v5)
@@ -26,10 +26,6 @@ let package = Package(
         .product(name: "Apollo", package: "apollo-ios"),
         .product(name: "ApolloAPI", package: "apollo-ios"),
       ]
-    ),
-    .testTarget(
-      name: "apollo-ios-paginationTests",
-      dependencies: ["apollo-ios-pagination"]
     ),
   ]
 )
