@@ -7,8 +7,8 @@ let package = Package(
   platforms: [
     .iOS(.v13),
     .macOS(.v10_15),
-    .tvOS(.v12),
-    .watchOS(.v5)
+    .tvOS(.v13),
+    .watchOS(.v6)
   ],
   products: [
     .library(name: "apollo-ios-pagination", targets: ["apollo-ios-pagination"]),
