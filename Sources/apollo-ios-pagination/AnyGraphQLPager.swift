@@ -4,7 +4,7 @@ import ApolloAPI
 public class AnyGraphQLQueryPager<Model> {
   public typealias Output = Result<([Model], [[Model]], UpdateSource), Error>
   private let _fetch: (CachePolicy) -> Void
-  private let _loadMore: (CachePolicy, (() -> Void)?) async throws -> Void
+  private let _loadMore: (CachePolicy) async throws -> Void
   private let _refetch: () -> Void
   private let _cancel: () -> Void
   private let _stream: AsyncStream<Output>
@@ -53,10 +53,11 @@ public class AnyGraphQLQueryPager<Model> {
   }
 
   public func loadMore(
-    cachePolicy: CachePolicy = .returnCacheDataAndFetch,
-    completion: (() -> Void)? = nil
+      cachePolicy: CachePolicy = .returnCacheDataAndFetch,
+      completion: (@MainActor () -> Void)? = nil
   ) async throws {
-      try await _loadMore(cachePolicy, completion)
+      try await _loadMore(cachePolicy)
+      await completion?()
   }
 
   public func refetch() {

@@ -77,6 +77,14 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     }
   }
 
+  public func subscribe(onUpdate: @MainActor @escaping (Result<Output, Error>) -> Void) {
+    Task {
+      for await result in subscribe() {
+        await onUpdate(result)
+      }
+    }
+  }
+
   /// Loads the first page of results.
   /// This method is non-destructive: It will re-fetch the contents of the first page, without modifying any of the other pages, should there be any.
   public func fetch(cachePolicy: CachePolicy = .returnCacheDataAndFetch) {
