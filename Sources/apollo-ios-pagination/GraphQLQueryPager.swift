@@ -77,6 +77,8 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     }
   }
 
+  /// Subscribe to new data from this watcher, using a callback
+  /// - Parameter onUpdate: A callback function that supplies a `Result<Output, Error>`
   public func subscribe(onUpdate: @MainActor @escaping (Result<Output, Error>) -> Void) {
     Task {
       for await result in subscribe() {
