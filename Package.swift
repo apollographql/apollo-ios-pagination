@@ -29,7 +29,11 @@ let package = Package(
     ),
     .testTarget(
       name: "apollo-ios-paginationTests",
-      dependencies: ["apollo-ios-pagination"]
+      dependencies: [
+        "apollo-ios-pagination",
+        .product(name: "ApolloSQLite", package: "apollo-ios"),
+        .product(name: "ApolloWebSocket", package: "apollo-ios"),
+      ]
     ),
   ]
 )
