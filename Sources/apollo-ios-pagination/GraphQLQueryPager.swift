@@ -20,9 +20,9 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   private var firstPageWatcher: GraphQLQueryWatcher<InitialQuery>?
   private var nextPageWatchers: [GraphQLQueryWatcher<PaginatedQuery>] = []
   private let initialQuery: InitialQuery
-  private let nextPageResolver: (PaginationInfo) -> PaginatedQuery?
-  private let extractPageInfo: (PageExtractionData) -> PaginationInfo
-  private var currentPageInfo: PaginationInfo? {
+  let nextPageResolver: (PaginationInfo) -> PaginatedQuery?
+  let extractPageInfo: (PageExtractionData) -> PaginationInfo
+  var currentPageInfo: PaginationInfo? {
     guard let last = pageOrder.last else { return nil }
     if let data = varMap[last] {
       return extractPageInfo(.paginated(data))
@@ -36,19 +36,19 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   private var onUpdate: ((Output) -> Void)?
   private var onError: ((Error) -> Void)?
 
-  private var initialPageResult: InitialQuery.Data?
-  private var latest: (InitialQuery.Data, [PaginatedQuery.Data])? {
+  var initialPageResult: InitialQuery.Data?
+  var latest: (InitialQuery.Data, [PaginatedQuery.Data])? {
     guard let initialPageResult else { return nil }
     return (initialPageResult, pageOrder.compactMap({ varMap[$0] }))
   }
 
   /// Array of page info used to fetch next pages. Maintains an order of values used to fetch each page in a connection.
-  private var pageOrder = [AnyHashable]()
+  var pageOrder = [AnyHashable]()
 
   /// Maps each query variable set to latest results from internal watchers.
-  private var varMap: [AnyHashable: PaginatedQuery.Data] = [:]
+  var varMap: [AnyHashable: PaginatedQuery.Data] = [:]
 
-  private var activeTask: Task<Void, Never>?
+  var activeTask: Task<Void, Never>?
 
   /// Designated Initializer
   /// - Parameters:
