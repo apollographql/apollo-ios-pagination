@@ -108,19 +108,9 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
         guard let self else { return }
         switch result {
         case .success(let data):
-          let shouldUpdate: Bool
-          if cachePolicy == .returnCacheDataAndFetch && data.source == .cache {
-            shouldUpdate = false
-          } else {
-            shouldUpdate = true
-          }
-
           self.initialPageResult = data.data
           guard let firstPageData = data.data else { return }
           let variables = initialQuery.__variables?.values.compactMap { $0._jsonEncodableValue?._jsonValue } ?? []
-          if shouldUpdate {
-            self.pageOrder.append(variables)
-          }
           if let latest = self.latest {
             let (_, nextPage) = latest
             self.onUpdate?((firstPageData, nextPage, data.source == .cache ? .cache : .fetch))
