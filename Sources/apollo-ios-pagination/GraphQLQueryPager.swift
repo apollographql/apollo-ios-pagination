@@ -132,6 +132,16 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     )
   }
 
+  public func loadMore(
+    cachePolicy: CachePolicy = .fetchIgnoringCacheData,
+    completion: (() -> Void)? = nil
+  ) {
+    Task {
+      try? await loadMore(cachePolicy: cachePolicy)
+      completion?()
+    }
+  }
+
   /// Loads the next page, based on the latest page info.
   public func loadMore(
     cachePolicy: CachePolicy = .fetchIgnoringCacheData
