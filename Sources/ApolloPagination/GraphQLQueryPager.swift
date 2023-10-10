@@ -36,8 +36,8 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     }
   }
 
-  var _subject: PassthroughSubject<Result<Output, Error>, Never> = .init()
-  public var subject: AnyPublisher<Result<Output, Error>, Never> { _subject.eraseToAnyPublisher() }
+  var _subject: CurrentValueSubject<Result<Output, Error>?, Never> = .init(nil)
+  public var subject: AnyPublisher<Result<Output, Error>, Never> { _subject.compactMap({ $0 }).eraseToAnyPublisher() }
   private var subscribers: [AnyCancellable] = []
 
   var initialPageResult: InitialQuery.Data?
@@ -194,6 +194,7 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     varMap = [:]
     pageOrder = []
     initialPageResult = nil
+    _subject.send(nil)
   }
 
   deinit {
