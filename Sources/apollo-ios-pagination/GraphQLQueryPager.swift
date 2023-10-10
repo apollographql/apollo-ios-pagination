@@ -37,6 +37,7 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
 
   private var onUpdate: ((Output) -> Void)?
   private var onError: ((Error) -> Void)?
+  private var stream: AsyncStream<Result<Output, Error>>?
 
   var initialPageResult: InitialQuery.Data?
   var latest: (InitialQuery.Data, [PaginatedQuery.Data])? {
@@ -79,13 +80,18 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   /// Subscribe to new data from this watcher.
   /// - Returns: An async stream that can be iterated over.
   public func subscribe() -> AsyncStream<Result<Output, Error>> {
-    AsyncStream { continuation in
+    if let stream {
+      return stream
+    }
+    let asyncStream = AsyncStream<Result<Output, Error>> { continuation in
       self.onUpdate = { continuation.yield(.success($0)) }
       self.onError = { continuation.yield(.failure($0)) }
       continuation.onTermination = { @Sendable [weak self] _ in
         self?.cancel()
       }
     }
+    self.stream = asyncStream
+    return asyncStream
   }
 
   /// Subscribe to new data from this watcher, using a callback
