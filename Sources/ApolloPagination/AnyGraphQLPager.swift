@@ -3,7 +3,7 @@ import ApolloAPI
 import Combine
 
 public class AnyGraphQLQueryPager<Model> {
-  public typealias Output = Result<([Model], [[Model]], UpdateSource), Error>
+  public typealias Output = Result<([Model], UpdateSource), Error>
   private let _fetch: (CachePolicy) -> Void
   private let _loadMore: (CachePolicy) async throws -> Void
   private let _refetch: () -> Void
@@ -28,8 +28,8 @@ public class AnyGraphQLQueryPager<Model> {
       case let .success(value):
         let (initial, next, updateSource) = value
         let firstPage = initialTransform(initial)
-        let nextPages = next.map { nextPageTransform($0) }
-        returnValue = .success((firstPage, nextPages, updateSource))
+        let nextPages = next.flatMap { nextPageTransform($0) }
+        returnValue = .success((firstPage + nextPages, updateSource))
       case let .failure(error):
         returnValue = .failure(error)
       }
