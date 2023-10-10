@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "apollo-ios-pagination",
+  name: "ApolloPagination",
   platforms: [
     .iOS(.v13),
     .macOS(.v10_15),
@@ -11,7 +11,7 @@ let package = Package(
     .watchOS(.v6)
   ],
   products: [
-    .library(name: "apollo-ios-pagination", targets: ["apollo-ios-pagination"]),
+    .library(name: "ApolloPagination", targets: ["ApolloPagination"]),
   ],
   dependencies: [
     .package(
@@ -21,7 +21,7 @@ let package = Package(
   ],
   targets: [
     .target(
-      name: "apollo-ios-pagination",
+      name: "ApolloPagination",
       dependencies: [
         .product(name: "Apollo", package: "apollo-ios"),
         .product(name: "ApolloAPI", package: "apollo-ios"),
