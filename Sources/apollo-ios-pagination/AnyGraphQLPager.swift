@@ -1,5 +1,6 @@
 import Apollo
 import ApolloAPI
+import Combine
 
 public class AnyGraphQLQueryPager<Model> {
   public typealias Output = Result<([Model], [[Model]], UpdateSource), Error>
@@ -7,7 +8,8 @@ public class AnyGraphQLQueryPager<Model> {
   private let _loadMore: (CachePolicy) async throws -> Void
   private let _refetch: () -> Void
   private let _cancel: () -> Void
-  private let _stream: AsyncStream<Output>
+  private let _subject: AnyPublisher<Output, Never>
+  private var cancellables = [AnyCancellable]()
 
   public init<Pager: GraphQLQueryPager<InitialQuery, NextQuery>, InitialQuery, NextQuery>(
     pager: Pager,
@@ -19,7 +21,7 @@ public class AnyGraphQLQueryPager<Model> {
     _refetch = pager.refetch
     _cancel = pager.cancel
 
-    _stream = pager.subscribe().map { result in
+    _subject = pager.subject.map { result in
       let returnValue: Output
 
       switch result {
@@ -33,19 +35,13 @@ public class AnyGraphQLQueryPager<Model> {
       }
 
       return returnValue
-    }
+    }.eraseToAnyPublisher()
   }
 
-  public func subscribe() -> AsyncStream<Output> {
-    return _stream
-  }
-
-  public func subscribe(completion: @MainActor @escaping (Output) -> Void) {
-    Task {
-      for await result in subscribe() {
-        await completion(result)
-      }
-    }
+  public func subscribe(completion: @escaping (Output) -> Void) {
+    _subject.sink { result in
+      completion(result)
+    }.store(in: &cancellables)
   }
 
   public func fetch(cachePolicy: CachePolicy = .returnCacheDataAndFetch) {

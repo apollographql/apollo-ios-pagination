@@ -1,5 +1,6 @@
 import Apollo
 import ApolloAPI
+import Combine
 import Foundation
 
 /// Handles pagination in the queue by managing multiple query watchers.
@@ -35,9 +36,8 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     }
   }
 
-  private var onUpdate: ((Output) -> Void)?
-  private var onError: ((Error) -> Void)?
-  private var stream: AsyncStream<Result<Output, Error>>?
+  public var subject: PassthroughSubject<Result<Output, Error>, Never> = .init()
+  private var subscribers: [AnyCancellable] = []
 
   var initialPageResult: InitialQuery.Data?
   var latest: (InitialQuery.Data, [PaginatedQuery.Data])? {
@@ -77,31 +77,14 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
 
   // MARK: - Public API
 
-  /// Subscribe to new data from this watcher.
-  /// - Returns: An async stream that can be iterated over.
-  public func subscribe() -> AsyncStream<Result<Output, Error>> {
-    if let stream {
-      return stream
-    }
-    let asyncStream = AsyncStream<Result<Output, Error>> { continuation in
-      self.onUpdate = { continuation.yield(.success($0)) }
-      self.onError = { continuation.yield(.failure($0)) }
-      continuation.onTermination = { @Sendable [weak self] _ in
-        self?.cancel()
-      }
-    }
-    self.stream = asyncStream
-    return asyncStream
-  }
-
   /// Subscribe to new data from this watcher, using a callback
   /// - Parameter onUpdate: A callback function that supplies a `Result<Output, Error>`
   public func subscribe(onUpdate: @MainActor @escaping (Result<Output, Error>) -> Void) {
-    Task {
-      for await result in subscribe() {
-        await onUpdate(result)
+    subject.sink { value in
+      Task {
+        await onUpdate(value)
       }
-    }
+    }.store(in: &subscribers)
   }
 
   /// Loads the first page of results.
@@ -120,10 +103,10 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
           guard let firstPageData = data.data else { return }
           if let latest = self.latest {
             let (_, nextPage) = latest
-            self.onUpdate?((firstPageData, nextPage, data.source == .cache ? .cache : .fetch))
+            self.subject.send(.success((firstPageData, nextPage, data.source == .cache ? .cache : .fetch)))
           }
         case .failure(let error):
-          self.onError?(error)
+          self.subject.send(.failure(error))
         }
       }
     )
@@ -179,10 +162,10 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
 
           if let latest = self.latest {
             let (firstPage, nextPage) = latest
-            self.onUpdate?((firstPage, nextPage, data.source == .cache ? .cache : .fetch))
+            self.subject.send(.success((firstPage, nextPage, data.source == .cache ? .cache : .fetch)))
           }
         case .failure(let error):
-          self.onError?(error)
+          self.subject.send(.failure(error))
         }
       }
       nextPageWatchers.append(watcher)
