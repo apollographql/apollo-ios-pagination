@@ -200,5 +200,6 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
   deinit {
     firstPageWatcher?.cancel()
     nextPageWatchers.forEach { $0.cancel() }
+    _subject.send(completion: .finished)
   }
 }
