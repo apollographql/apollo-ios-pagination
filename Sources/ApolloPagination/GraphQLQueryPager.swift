@@ -36,7 +36,8 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
     }
   }
 
-  public var subject: PassthroughSubject<Result<Output, Error>, Never> = .init()
+  var _subject: PassthroughSubject<Result<Output, Error>, Never> = .init()
+  public var subject: AnyPublisher<Result<Output, Error>, Never> { _subject.eraseToAnyPublisher() }
   private var subscribers: [AnyCancellable] = []
 
   var initialPageResult: InitialQuery.Data?
@@ -103,10 +104,10 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
           guard let firstPageData = data.data else { return }
           if let latest = self.latest {
             let (_, nextPage) = latest
-            self.subject.send(.success((firstPageData, nextPage, data.source == .cache ? .cache : .fetch)))
+            self._subject.send(.success((firstPageData, nextPage, data.source == .cache ? .cache : .fetch)))
           }
         case .failure(let error):
-          self.subject.send(.failure(error))
+          self._subject.send(.failure(error))
         }
       }
     )
@@ -162,10 +163,10 @@ public class GraphQLQueryPager<InitialQuery: GraphQLQuery, PaginatedQuery: Graph
 
           if let latest = self.latest {
             let (firstPage, nextPage) = latest
-            self.subject.send(.success((firstPage, nextPage, data.source == .cache ? .cache : .fetch)))
+            self._subject.send(.success((firstPage, nextPage, data.source == .cache ? .cache : .fetch)))
           }
         case .failure(let error):
-          self.subject.send(.failure(error))
+          self._subject.send(.failure(error))
         }
       }
       nextPageWatchers.append(watcher)
