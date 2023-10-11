@@ -5,10 +5,10 @@ import PackageDescription
 let package = Package(
   name: "ApolloPagination",
   platforms: [
-    .iOS(.v12),
-    .macOS(.v10_14),
-    .tvOS(.v12),
-    .watchOS(.v5)
+    .iOS(.v13),
+    .macOS(.v10_15),
+    .tvOS(.v13),
+    .watchOS(.v6)
   ],
   products: [
     .library(name: "ApolloPagination", targets: ["ApolloPagination"]),
@@ -26,10 +26,6 @@ let package = Package(
         .product(name: "Apollo", package: "apollo-ios"),
         .product(name: "ApolloAPI", package: "apollo-ios"),
       ]
-    ),
-    .testTarget(
-      name: "ApolloPaginationTests",
-      dependencies: ["ApolloPagination"]
     ),
   ]
 )
