@@ -259,20 +259,23 @@ actor AsyncGraphQLQueryPagerCoordinator<InitialQuery: GraphQLQuery, PaginatedQue
   ) async throws {
     do {
       try await _paginationFetch(direction: direction, cachePolicy: cachePolicy)
-    } catch PaginationError.loadInProgress {
-      queueOperation()
-    } catch PaginationError.missingInitialPage {
-      queueOperation()
+    } catch {
+      guard let e = error as? PaginationError else { throw error }
+      switch e {
+      case .loadInProgress, .missingInitialPage:
+        queueOperation()
+        throw e
+      default:
+        throw e
+      }
     }
 
     func queueOperation() {
       switch direction {
       case .next:
-        guard let nextPageInfo else { return }
-        queuedOperations.append(.loadNext(cachePolicy, nextPageResolver(nextPageInfo)))
+        queuedOperations.append(.loadNext(cachePolicy, nextPageInfo.flatMap(nextPageResolver) ?? nil))
       case .previous:
-        guard let previousPageInfo else { return }
-        queuedOperations.append(.loadPrevious(cachePolicy, previousPageResolver(previousPageInfo)))
+        queuedOperations.append(.loadPrevious(cachePolicy, previousPageInfo.flatMap(previousPageResolver) ?? nil))
       }
     }
   }
